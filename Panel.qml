@@ -95,11 +95,6 @@ Panel {
   readonly property string iconServer: "\uF233"
   readonly property string iconDot: "\uF111"
   readonly property string iconTrash: "\uF1F8"
-  // nf-md-skull, U+F068C. Written as its surrogate pair because a `\u`
-  // escape takes exactly four hex digits, and this codepoint is past the
-  // point where four is enough - `"\uF068C"` is a different glyph followed
-  // by the letter C.
-  readonly property string iconKill: "\uDB81\uDE8C"
   // nf-fa-thumb_tack, U+F08D.
   readonly property string iconPin: "\uF08D"
 
@@ -133,9 +128,6 @@ Panel {
   property string errorText: ""
   // Session the script is currently acting on, so its row can dim.
   property string pendingName: ""
-  // The session the kill dialog is asking about, held while it is open.
-  property var killTarget: null
-  property bool confirmOpen: false
 
   // Where the card is: in the bar as a dropdown, or loose on screen as a
   // window of its own. Not a property this widget sets, but one it reads back
@@ -199,15 +191,15 @@ Panel {
   // seconds after you moved it.
   property bool cursorPlaced: false
 
-  // Where the cursor is across the row: 0 is the row itself, 1 the
-  // destructive button. Right and Tab walk out to the button, Left walks
-  // back. There used to be an open button out here too; it went away when
-  // the row itself and every agent line became the way in, and the cursor
-  // walk shrank with it. Kept as a number rather than a per-row object so
-  // moving up and down holds its place in the row: walking a column of kill
-  // buttons is a thing you do on purpose.
+  // Where the cursor is across the row: 0 is the row itself, 1 the delete
+  // button, which only a stopped local session has. Right and Tab walk out
+  // to it, Left walks back. There used to be an open button and a kill
+  // button out here; both went away - the row itself and every agent line
+  // are the way in, and a server is ended from a terminal, not from a bar.
+  // Kept as a number rather than a per-row object so moving up and down
+  // holds its place in the row.
   readonly property int columnRow: 0
-  readonly property int columnDestroy: 1
+  readonly property int columnDelete: 1
   property int column: 0
   property int cursor: -1
 
@@ -317,54 +309,10 @@ Panel {
     run("delete", session.name)
   }
 
-  // How a running server is ended here, and the only way: `herdr session stop`
-  // asks over herdr's own socket, so a server too wedged to read that socket
-  // never hears the request, and the button that sent it looked broken at
-  // exactly the moment you needed it. Signalling the process works either way,
-  // so there is no reason to keep both.
-  //
-  // The shared session is killed like any other. It wedges like any other.
-  // A machine's server is not killed from here: it is another host's
-  // process, held in another host's sessions, and the panel that reached
-  // over SSH to end it would be a very small button for a very large leap.
-  function killSession(session) {
-    if (!session || session.remote || !session.running || !validName(session.name)) return
-    run("kill", session.name)
-  }
-
-  // Killing is the one thing here that cannot be taken back: the server is
-  // gone and so is everything that was running inside it, without anything
-  // being asked to finish first. Opening a session, focusing an agent and even
-  // deleting a stopped session are all recoverable or trivial by comparison,
-  // so this is the only action that stops to ask.
-  //
-  // The dialog opens on Cancel rather than on the confirming side, which is
-  // ConfirmDialog's own default: a dialog that destroys something on a
-  // reflexive Enter is worse than no dialog, because it trains the reflex.
-  function askKill(session) {
-    if (!session || session.remote || !session.running || !validName(session.name)) return
-    killTarget = session
-    confirmOpen = true
-    if (activeCard) activeCard.beginConfirm()
-  }
-
-  function closeKill() {
-    confirmOpen = false
-    killTarget = null
-    if (activeCard) activeCard.endConfirm()
-  }
-
-  function confirmKill() {
-    var session = killTarget
-    closeKill()
-    killSession(session)
-  }
-
-  function killMessage() {
-    if (!killTarget) return ""
-    return "Kill the server for " + sessionLabel(killTarget)
-      + "? Nothing running inside it is asked to stop first."
-  }
+  // How a running server is ended is not from here at all anymore: the
+  // skull is gone, and `bin/herdr-sessions kill <name>` remains for a
+  // terminal. A machine's server was never this panel's to end - another
+  // host's process, held in another host's sessions.
 
   // Pinning and unpinning are the same click, and neither of them opens or
   // closes anything: `opened` is what the bar button has always meant, and it
@@ -479,15 +427,13 @@ Panel {
     return best >= 0 ? best : (navRows.length > 0 ? 0 : -1)
   }
 
-  // The destructive button is not on every row: a stopped shared session has
-  // nothing to kill and nothing that may be deleted, and a machine's row has
-  // no buttons at all - so for those rows there is nothing to walk out to
-  // and the cursor stays on the row.
+  // The delete button is on stopped local sessions only: a machine's row
+  // has none, and neither does the shared session. Everything else stays on
+  // the row.
   function lastColumnFor(session) {
     if (!session) return root.columnRow
-    if (session.remote) return root.columnRow
-    if (session.running) return root.columnDestroy
-    return session.isDefault ? root.columnRow : root.columnDestroy
+    if (session.remote || session.running || session.isDefault) return root.columnRow
+    return root.columnDelete
   }
 
   function clampColumn() {
@@ -530,14 +476,13 @@ Panel {
   }
 
   // Enter goes as deep as the cursor is: onto the agent when it is on one,
-  // onto the destroy button when it is out on one, and onto the session when
+  // onto the delete button when it is out on one, and onto the session when
   // the row is a session with nothing in it.
   function activateCursor() {
     var session = sessionAt(cursor)
     if (!session) return
-    if (column === root.columnDestroy) {
-      if (session.running) askKill(session)
-      else removeSession(session)
+    if (column === root.columnDelete) {
+      removeSession(session)
       return
     }
     var agent = agentAt(cursor)

@@ -3,8 +3,7 @@ import QtQuick.Controls
 import qs.Commons
 import qs.Ui
 
-// Everything inside the card: the herd, the keys that walk it, and the one
-// question that has to be asked before a server is killed.
+// Everything inside the card: the herd, and the keys that walk it.
 //
 // It lives in its own file because there are two places to put it. The bar
 // button opens it as a dropdown, and the pin opens it as a window that stays
@@ -70,22 +69,7 @@ PanelKeyCatcher {
     list.positionViewAtIndex(index, ListView.Contain)
   }
 
-  function beginConfirm() {
-    killConfirm.selectedIndex = 0
-    Qt.callLater(function() { confirmKeys.forceActiveFocus() })
-  }
-
-  // Focus goes back to the card by hand on the way out. The key catcher gave
-  // it up when the dialog took over, and nothing hands it back on its own.
-  function endConfirm() {
-    Qt.callLater(function() { card.forceActiveFocus() })
-  }
-
   anchors.fill: parent
-  // While the dialog is up the panel's own keys are off, so Escape closes
-  // the question rather than the whole panel, and Enter answers it rather
-  // than opening whatever the cursor was on.
-  blocked: panel.confirmOpen
   onCloseRequested: panel.close()
   onMoveRequested: function(dx, dy) {
     if (dy !== 0) panel.moveCursor(dy)
@@ -97,10 +81,9 @@ PanelKeyCatcher {
   onActivateRequested: panel.activateCursor()
   onTextKey: function(t) {
     // The letter keys stay about the server, wherever inside it the
-    // cursor happens to be: you kill a server, never an agent.
+    // cursor happens to be: you open or delete a session, never an agent.
     var session = panel.sessionAt(panel.cursor)
     if (t === "o" && session) panel.openSession(session)
-    else if (t === "k" && session) panel.askKill(session)
     else if (t === "x" && session) panel.removeSession(session)
     else if (t === "p") panel.togglePin()
     else if (t === "r") panel.refresh()
@@ -603,37 +586,21 @@ PanelKeyCatcher {
             // keyboard too, so the cursor looks the same whether it got
             // there by pointing or by pressing Right.
             //
-            // One destructive slot, holding whichever of the two applies
-            // to this row: a running server is killed, a stopped session is
-            // deleted, and nothing is ever both. Sharing the slot rather
-            // than giving each its own keeps the names in one column and
-            // leaves no gap where the other button would have been.
-            //
-            // The shared session is herdr's own, so it can be killed but
-            // never deleted - hence the empty slot there once it is down.
+            // The bin, on the one row that can have it: a local session
+            // that is already stopped and is not the shared one. Running
+            // sessions have nothing here anymore - a server is ended from a
+            // terminal, not from a bar - and machines never do. The slot is
+            // kept on every row rather than collapsing to nothing when it
+            // is empty, which keeps the names in one column and leaves no
+            // layout jump between rows.
             Item {
-              width: killButton.width
-              height: killButton.height
+              width: trashButton.width
+              height: trashButton.height
 
               PanelActionButton {
-                id: killButton
+                id: trashButton
                 hasCursor: panel.cursorOnSession(row.index)
-                  && panel.column === panel.columnDestroy
-                // A machine's server is another host's process; the skull
-                // stops at the water's edge.
-                visible: row.modelData.running && !row.modelData.remote
-                iconText: panel.iconKill
-                tooltipText: "Kill this server"
-                foreground: Qt.darker(panel.foreground, 1.4)
-                hoverColor: panel.urgent
-                fontFamily: panel.fontFamily
-                fontSize: Style.font.iconSmall
-                onClicked: panel.askKill(row.modelData)
-              }
-
-              PanelActionButton {
-                hasCursor: panel.cursorOnSession(row.index)
-                  && panel.column === panel.columnDestroy
+                  && panel.column === panel.columnDelete
                 visible: !row.modelData.running && !row.modelData.isDefault && !row.modelData.remote
                 iconText: panel.iconTrash
                 tooltipText: "Delete this session"
@@ -673,41 +640,6 @@ PanelKeyCatcher {
   }
 
   // ------------------------------------------------------- confirm
-
-  // The dialog carries its own key handling, because PanelKeyCatcher
-  // defines `Keys.onPressed` in the component itself: declaring it again
-  // out here would replace that handler rather than run before it, and
-  // every arrow key in the panel with it. So the catcher is blocked
-  // instead and this takes the focus while the question is up.
-  //
-  // Only alive while it is asking - an invisible item cannot hold focus,
-  // which is what keeps the panel's own keys working the rest of the time.
-  Item {
-    id: confirmKeys
-    anchors.fill: parent
-    z: 10
-    visible: panel.confirmOpen
-    focus: panel.confirmOpen
-
-    Keys.priority: Keys.BeforeItem
-    Keys.onPressed: function(event) {
-      if (killConfirm.handleKey(event)) event.accepted = true
-    }
-
-    ConfirmDialog {
-      id: killConfirm
-      anchors.fill: parent
-      opened: panel.confirmOpen
-      // ConfirmDialog draws the message with the shell's own Text, so
-      // `textFormat` there is not ours to set and the session name - which
-      // is whatever was passed to `herdr --session` - is stripped instead.
-      message: panel.plain(panel.killMessage())
-      confirmText: "Kill"
-      background: Color.background
-      foreground: panel.foreground
-      fontFamily: panel.fontFamily
-      onCanceled: panel.closeKill()
-      onConfirmed: panel.confirmKill()
-    }
-  }
+  // (The kill dialog that lived here went with the skull; the panel no
+  // longer ends servers, and nothing else here has ever needed to ask.)
 }

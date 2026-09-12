@@ -89,21 +89,10 @@ one colour.
   first, then the window comes up - over SSH first, for an agent on a machine.
   That also marks a finished agent as seen, so clicking the line that says
   **done** is what clears it.
-- **The skull** (or `k`) ends that server, and is the only way it is ended from
-  here. It asks first, and the dialog opens on **Cancel** rather than on the
-  confirming side: a dialog that destroys something on a reflexive Enter is
-  worse than no dialog, because it trains the reflex. It is the only action in
-  the panel that stops to ask - opening, focusing and deleting a stopped
-  session are all recoverable or trivial, and this one is not. `herdr session stop` asks over herdr's own socket, so a server too
-  wedged to read that socket never hears the request and the button looks
-  broken at exactly the moment you needed it. This signals the process instead:
-  TERM first, and KILL a second later if that was not enough. The shared
-  session is killed like any other, because it wedges like any other.
 - **The bin** (or `x`) throws away a session that is already stopped - the
   directory and the state herdr kept in it - which is what clears it out of the
-  list for good. It takes the same slot as the skull, because a session is
-  never both running and stopped. The shared session is herdr's own and is
-  never deleted from here. Neither button is on a machine's row: that server
+  list for good. The shared session is herdr's own and is
+  never deleted from here. Neither is on a machine's row: that server
   is another host's process, and `herdr machine remove` is the door that
   leads there.
 - **`r`** refreshes, and so does a middle click on the bar button.
@@ -112,8 +101,13 @@ one colour.
 A row marked **stopped** is a session whose server is not running. The session
 itself still exists on disk, under `~/.config/herdr/sessions/<name>/`, which is
 why it stays in the list: clicking it starts that server back up, and the bin
-throws the session away for good. There is nothing to kill there, so the skull
-gives way to the bin.
+throws the session away for good.
+
+A running server is not ended from the panel at all. The skull that used to
+live here went with the open button: the panel is for seeing and reaching the
+herd, and ending a server is a terminal's job - `bin/herdr-sessions kill
+<name>` still does it, signalling the process (TERM, then KILL) rather than
+asking a socket a wedged server cannot read.
 
 What survives the server is the layout - herdr keeps it in `session.json` - so
 a stopped row still names the workspaces it was holding and the directories
@@ -201,8 +195,7 @@ omarchy bar move jankeesvw.herdr --section right
 Needs `herdr`, `jq` and `hyprctl` on `$PATH`, and `ssh` for the remote
 machines. `hyprctl` is what pairs a session with the window showing it;
 without Hyprland the list still works, but every session looks like it has no
-window and a click opens a new one. `ss` (from iproute2) is what the skull
-button uses to find the process behind a session's socket, and a window is
+window and a click opens a new one. A window is
 opened in `foot`, falling back to `xdg-terminal-exec`.
 
 Remote machines need nothing beyond a profile herdr itself saved
