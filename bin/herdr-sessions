@@ -920,12 +920,16 @@ cmd_focus() {
   # same command the local branch runs; then the window comes up the way any
   # machine's window does. The remote focus is best effort: a machine that
   # is not answering still gets its window, which is the half of the click
-  # that works from here.
+  # that works from here. Same order as the local branch: the window up
+  # first, so the attaching client's own activation assertion lands before
+  # the focus does and cannot bounce it back.
   if [[ $name == *:* ]]; then
     local mid=${name%%:*} meta target rsession bin
     meta=$(machine_meta_for "$mid") || true
     [[ -n $meta ]] || die "no such machine"
     IFS=$'\t' read -r target rsession <<<"$meta"
+    open_remote "$name" || die "no terminal available"
+    sleep 0.2
     bin=$(remote_herdr_bin "$target" "$mid") || bin=""
     if [[ -n $bin ]]; then
       local -a rcmd=("$bin")
@@ -934,7 +938,6 @@ cmd_focus() {
       timeout "$REMOTE_CALL_TIMEOUT" ssh "${REMOTE_SSH_OPTS[@]}" "$target" "${rcmd[*]}" >/dev/null 2>&1 || focus_rc=$?
     fi
     action_log "focus-remote session=$name pane=$pane rc=$focus_rc"
-    open_remote "$name" || die "no terminal available"
     printf '{"ok":true}\n'
     return
   fi
@@ -943,14 +946,21 @@ cmd_focus() {
   # already refused anything but two runs of letters, digits, dash and
   # underscore around a colon - so nothing here can arrive looking like an
   # option in the first place.
+  # The window comes up first and the focus lands second. A herdr client
+  # tells the server which pane it is showing the moment its window is
+  # activated, and that assertion would bounce a focus that had already
+  # landed straight back to whatever the window was left displaying - the
+  # click focused the agent, the raise un-focused it again, and the panel
+  # was none the wiser. Raised first, asserted first, the focus below is
+  # the last word. The pause is the assertion's head start.
+  show_session "$name" || die "no terminal available"
+  sleep 0.2
   if [[ $name == default ]]; then
     herdr agent focus "$pane" >/dev/null 2>&1 || focus_rc=$?
   else
     herdr --session "$name" agent focus "$pane" >/dev/null 2>&1 || focus_rc=$?
   fi
   action_log "focus session=$name pane=$pane rc=$focus_rc"
-
-  show_session "$name" || die "no terminal available"
   printf '{"ok":true}\n'
 }
 
