@@ -530,13 +530,17 @@ PanelKeyCatcher {
                     ? 0 : (agentNote.visible ? Style.space(6) : 0)
                   anchors.top: agentWorkspace.visible ? agentWorkspace.bottom : parent.top
                   anchors.topMargin: agentWorkspace.visible ? Style.space(1) : agentRow.pad
-                  text: panel.cleanTitle(agentRow.modelData.title)
+                  // The agent's own name - herdr's kind for it - rather than
+                  // the terminal title: the title is so often the directory
+                  // the agent is in, and the line above this one just said
+                  // that. The title stands in only when there is no name.
+                  text: panel.agentName(agentRow.modelData)
                   textFormat: Text.PlainText
                   elide: Text.ElideRight
                   font.family: panel.fontFamily
                   font.pixelSize: Style.font.caption
                   // Always a step behind the workspace above it, lit or
-                  // not: what the agent called itself is the detail, the
+                  // not: what the agent is called is the detail, the
                   // place is the heading.
                   color: agentRow.wants || agentRow.lit
                     ? Qt.darker(panel.foreground, 1.5)

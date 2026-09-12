@@ -55,11 +55,16 @@ Panel {
       var rows = []
       for (var i = 0; i < root.sessions.length; i++) {
         var s = root.sessions[i]
+        var agents = []
+        var list = s.agentList || []
+        for (var j = 0; j < list.length; j++)
+          agents.push({ workspace: list[j].workspace || "",
+                        name: root.agentName(list[j]) })
         rows.push({ name: s.name, remote: s.remote, machine: s.machine,
-                     label: root.sessionLabel(s) })
+                     label: root.sessionLabel(s), agents: agents })
       }
       return JSON.stringify({
-        code: 3,
+        code: 4,
         card: root.activeCard && root.activeCard.cardMarker
           ? root.activeCard.cardMarker : "none",
         rows: rows
@@ -641,6 +646,18 @@ Panel {
     var s = String(title || "").trim()
     var stripped = s.replace(/^[^0-9A-Za-z\u00C0-\u024F]+/, "").trim()
     return stripped !== "" ? stripped : s
+  }
+
+  // What an agent line is called: the agent's own name - herdr's kind for
+  // it, the word you would type to start one more of - and only when there
+  // is none, whatever it wrote to the terminal. A kind like "pi" says what
+  // is running; a title like "π - DEVhm" mostly says where, and the line
+  // above it has already said that.
+  function agentName(agent) {
+    if (!agent) return ""
+    var name = String(agent.agent || "").trim()
+    if (name !== "") return name
+    return cleanTitle(agent.title)
   }
 
   // Every agent, however many there are and wherever herdr keeps them: a pane

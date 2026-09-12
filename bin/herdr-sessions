@@ -159,12 +159,12 @@ cmd_demo() {
 demo_list() {
   cat <<'DEMO'
 {"ok":true,"error":"","sessions":[
-{"name":"default","isDefault":true,"running":true,"version":"0.8.2","agents":2,"working":1,"blocked":0,"idle":1,"done":0,"workspaces":2,"projects":["checkout-service","design-tokens"],"agentList":[{"title":"Rewrite the receipt formatter","status":"working","pane":"w1:p1","seq":11},{"title":"Token names for the new palette","status":"idle","pane":"w2:p1","seq":9}],"windowAddress":"0x1"},
-{"name":"3","isDefault":false,"running":true,"version":"0.8.2","agents":1,"working":0,"blocked":1,"idle":0,"done":0,"workspaces":1,"projects":["billing-api"],"agentList":[{"title":"Drop the legacy invoice table","status":"blocked","pane":"w1:p1","seq":14}],"windowAddress":"0x2"},
-{"name":"5","isDefault":false,"running":true,"version":"0.8.2","agents":2,"working":0,"blocked":0,"idle":0,"done":2,"workspaces":1,"projects":["docs-site"],"agentList":[{"title":"Upgrade the search index","status":"done","pane":"w1:p1","seq":12},{"title":"Fix the broken anchor links","status":"done","pane":"w1:p2","seq":13}],"windowAddress":""},
+{"name":"default","isDefault":true,"running":true,"version":"0.8.2","agents":2,"working":1,"blocked":0,"idle":1,"done":0,"workspaces":2,"projects":["checkout-service","design-tokens"],"agentList":[{"agent":"pi","title":"Rewrite the receipt formatter","status":"working","pane":"w1:p1","seq":11},{"agent":"codex","title":"Token names for the new palette","status":"idle","pane":"w2:p1","seq":9}],"windowAddress":"0x1"},
+{"name":"3","isDefault":false,"running":true,"version":"0.8.2","agents":1,"working":0,"blocked":1,"idle":0,"done":0,"workspaces":1,"projects":["billing-api"],"agentList":[{"agent":"claude","title":"Drop the legacy invoice table","status":"blocked","pane":"w1:p1","seq":14}],"windowAddress":"0x2"},
+{"name":"5","isDefault":false,"running":true,"version":"0.8.2","agents":2,"working":0,"blocked":0,"idle":0,"done":2,"workspaces":1,"projects":["docs-site"],"agentList":[{"agent":"pi","title":"Upgrade the search index","status":"done","pane":"w1:p1","seq":12},{"agent":"codex","title":"Fix the broken anchor links","status":"done","pane":"w1:p2","seq":13}],"windowAddress":""},
 {"name":"9","isDefault":false,"running":false,"version":"","agents":0,"working":0,"blocked":0,"idle":0,"done":0,"workspaces":0,"projects":[],"agentList":[],"windowAddress":""},
-{"name":"c4a89f2b1d06e3754a0b9c8d2e1f6073:default","isDefault":false,"remote":true,"machine":"buildbox","running":true,"version":"0.9.0","agents":2,"working":1,"blocked":0,"idle":1,"done":0,"workspaces":1,"projects":["infra"],"agentList":[{"title":"Roll out the new proxy","status":"working","pane":"w1:p1","seq":17},{"title":"Rotate the backup keys","status":"idle","pane":"w2:p1","seq":15}],"windowAddress":""},
-{"name":"0d3b7e5c91a2f4b68d0c7e3a5f1b2c94:default","isDefault":false,"remote":true,"machine":"laptop","running":false,"unreachable":true,"version":"","agents":1,"working":0,"blocked":0,"idle":0,"done":1,"workspaces":1,"projects":["notes"],"agentList":[{"title":"Rebuild the search index","status":"done","pane":"w1:p1","seq":19}],"windowAddress":""}
+{"name":"c4a89f2b1d06e3754a0b9c8d2e1f6073:default","isDefault":false,"remote":true,"machine":"buildbox","running":true,"version":"0.9.0","agents":2,"working":1,"blocked":0,"idle":1,"done":0,"workspaces":1,"projects":["infra"],"agentList":[{"agent":"pi","title":"Roll out the new proxy","status":"working","pane":"w1:p1","seq":17},{"agent":"codex","title":"Rotate the backup keys","status":"idle","pane":"w2:p1","seq":15}],"windowAddress":""},
+{"name":"0d3b7e5c91a2f4b68d0c7e3a5f1b2c94:default","isDefault":false,"remote":true,"machine":"laptop","running":false,"unreachable":true,"version":"","agents":1,"working":0,"blocked":0,"idle":0,"done":1,"workspaces":1,"projects":["notes"],"agentList":[{"agent":"pi","title":"Rebuild the search index","status":"done","pane":"w1:p1","seq":19}],"windowAddress":""}
 ],"running":4,"agents":8,"blocked":1,"done":3,"working":2}
 DEMO
 }
@@ -685,6 +685,7 @@ cmd_list() {
            workspaces: (($snap.workspaces // []) | length),
            agentList: ($agents
                        | map({title: (.terminal_title_stripped // .terminal_title // ""),
+                              agent: (.agent // ""),
                               status: (.agent_status // "unknown"),
                               pane: (.pane_id // ""),
                               workspace: ($wslabels[.workspace_id // ""] // ""),
@@ -693,7 +694,7 @@ cmd_list() {
                               # two agents that both want something apart by
                               # which one spoke last.
                               seq: (.state_change_seq // 0)})
-                       | map(select(.title != ""))
+                       | map(select(.title != "" or .agent != ""))
                        # The attention queue herdr uses itself, the order its
                        # own agent panel takes when agent_panel_sort is set to
                        # priority: what wants an answer, then what finished

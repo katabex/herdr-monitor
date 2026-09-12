@@ -23,10 +23,12 @@ Each row in the panel is one session:
 - its name, in bold when a window is already showing it
 - the projects open inside it, taken from the workspace labels
 - how many agents it holds, and what the most urgent of them is up to
-- what every one of those agents is doing, from its terminal title, with its
-  own status dot beside it. All of them, however many and wherever herdr keeps
-  them: a pane in a second tab counts the same as one sitting in front of you.
-  Each of those lines is its own way in
+- what every one of those agents is, with its own status dot beside it:
+  the workspace above (the folder the work is in) and the agent's name
+  under it (herdr's kind for it - `pi`, `codex` - falling back to whatever
+  the agent wrote to the terminal). All of them, however many and wherever
+  herdr keeps them: a pane in a second tab counts the same as one sitting
+  in front of you. Each of those lines is its own way in
 - a dot in the session's colour, taking the state of its loudest agent
 
 ## The states
