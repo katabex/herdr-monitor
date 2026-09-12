@@ -192,6 +192,17 @@ quiet_private_dir() {
   return 0
 }
 
+# One line per open/focus/kill/delete the panel asked for, so a click that
+# behaved strangely can be read back exactly: what arrived, whether the
+# herdr command succeeded, and whether a window was paired or a terminal
+# had to be started. Session names, pane ids and outcomes - the same class
+# of thing the machine cache already holds - and the file lives beside it.
+action_log() {
+  quiet_private_dir "$CACHE_DIR" 2>/dev/null || return 0
+  printf '%s %s\n' "$(date -u +%FT%TZ)" "$*" >> "$CACHE_DIR/actions.log" || true
+  chmod 600 -- "$CACHE_DIR/actions.log" 2>/dev/null || true
+}
+
 # One shared control socket per SSH destination, so a warm poll costs a
 # packet rather than a handshake. BatchMode keeps a machine that wants a
 # password from sitting at a prompt the widget cannot see; ConnectTimeout
@@ -772,6 +783,7 @@ show_session() {
   local address workspace
   IFS=$'\t' read -r address workspace < <(
     window_map | awk -F'\t' -v want="$name" '$1 == want { print $2 "\t" $3; exit }')
+  action_log "open session=$name addr=${address:--} ws=${workspace:--}"
 
   # Both values are spliced into a Lua expression, so they are checked for
   # shape first rather than escaped. A window address is hex; a workspace name
@@ -900,7 +912,7 @@ cmd_open() {
 # `herdr agent focus` switches workspace and tab inside the session on its
 # own; the hyprctl half below is only about which window is in front of you.
 cmd_focus() {
-  local name="${1-}" pane="${2-}"
+  local name="${1-}" pane="${2-}" focus_rc=0
   valid_session_name "$name" || die "not a session name"
   valid_pane_id "$pane" || die "not a pane id"
 
@@ -919,8 +931,9 @@ cmd_focus() {
       local -a rcmd=("$bin")
       [[ $rsession == default ]] || rcmd+=(--session "$rsession")
       rcmd+=(agent focus "$pane")
-      timeout "$REMOTE_CALL_TIMEOUT" ssh "${REMOTE_SSH_OPTS[@]}" "$target" "${rcmd[*]}" >/dev/null 2>&1 || true
+      timeout "$REMOTE_CALL_TIMEOUT" ssh "${REMOTE_SSH_OPTS[@]}" "$target" "${rcmd[*]}" >/dev/null 2>&1 || focus_rc=$?
     fi
+    action_log "focus-remote session=$name pane=$pane rc=$focus_rc"
     open_remote "$name" || die "no terminal available"
     printf '{"ok":true}\n'
     return
@@ -931,10 +944,11 @@ cmd_focus() {
   # underscore around a colon - so nothing here can arrive looking like an
   # option in the first place.
   if [[ $name == default ]]; then
-    herdr agent focus "$pane" >/dev/null 2>&1 || true
+    herdr agent focus "$pane" >/dev/null 2>&1 || focus_rc=$?
   else
-    herdr --session "$name" agent focus "$pane" >/dev/null 2>&1 || true
+    herdr --session "$name" agent focus "$pane" >/dev/null 2>&1 || focus_rc=$?
   fi
+  action_log "focus session=$name pane=$pane rc=$focus_rc"
 
   show_session "$name" || die "no terminal available"
   printf '{"ok":true}\n'
