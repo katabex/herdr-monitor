@@ -1,34 +1,52 @@
 # Herdr for Omarchy
 
 A bar widget for [herdr](https://herdr.dev): how many herdr servers are
-running, what is inside each one, and one click to open it.
+running, what is inside each one, and one click to open it — local sessions
+and saved SSH machines alike.
 
 Herdr runs one server per named session. They are easy to start and they never
 stop by themselves, because closing a window detaches rather than ends the
 session. So they pile up unseen. This widget puts the count in the bar and the
-list one click away.
+list one click away, and the machines you have told herdr about
+(`herdr machine add`) get a row of their own after the local ones, with their
+agents inside them.
 
-![The Herdr panel open on a desktop, listing four sessions with the agents inside each](assets/screenshot.png)
+This is a fork of [jankeesvw/omarchy-herdr](https://github.com/jankeesvw/omarchy-herdr)
+carrying the same plugin id, so it drops straight in over the original. See
+[Credits](#credits) for what is whose.
+
+![The Herdr panel open on a desktop, listing sessions with the agents inside each](assets/screenshot.png)
 
 ## What it shows
 
+The card's header is the server glyph the bar button wears, followed by the
+tally - `Herdr (2 servers, 5 agents)` - counting local sessions and machines
+together.
+
 The bar carries the number of running servers, on a badge sitting in the top
-right corner of the icon. It turns red when an agent is blocked and waiting on
-an answer, green when work finished while you were looking elsewhere, and amber
-while something is still running. When every agent is idle there is nothing to
-say, so the badge goes away and the icon stands on its own.
+right corner of the icon, its digit centred in the disc. It turns red when an
+agent is blocked and waiting on an answer, green when work finished while you
+were looking elsewhere, and amber while something is still running. When every
+agent is idle there is nothing to say, so the badge goes away and the icon
+stands on its own. Blocked agents on a machine count the same as local ones:
+the badge is about the herd, not about where it grazes.
 
-Each row in the panel is one session:
+Each row in the panel is one session or one machine:
 
-- its name, in bold when a window is already showing it
+- its name - **Local** for the shared session, **Workspace N** for a numbered
+  one, a session's own name otherwise, and a machine's label for a machine -
+  in bold when a window is already showing it
 - the projects open inside it, taken from the workspace labels
-- how many agents it holds, and what the most urgent of them is up to
+- how many agents it holds, and what the most urgent of them is up to; a
+  machine that stopped answering says **unreachable** here instead, in amber,
+  and its row is dimmed
 - what every one of those agents is, with its own status dot beside it:
   the workspace above (the folder the work is in) and the agent's name
   under it (herdr's kind for it - `pi`, `codex` - falling back to whatever
   the agent wrote to the terminal). All of them, however many and wherever
   herdr keeps them: a pane in a second tab counts the same as one sitting
-  in front of you. Each of those lines is its own way in
+  in front of you, and a pane on another machine counts the same as both.
+  Each of those lines is its own way in
 - a dot in the session's colour, taking the state of its loudest agent
 
 ## The states
@@ -52,7 +70,7 @@ herdr's own attention queue, the order its agent panel takes when
 `agent_panel_sort = "priority"`. `idle` is written as **ready**, because it is the ordinary resting
 state and "idle" reads like a fault.
 
-Both **needs you** and **done** are written bold and in colour, along with the title beside them, and their whole row is washed in that colour: red for a question, green for work that finished. **working** and **ready** stay quiet, because a panel where every line is coloured is a panel where colour means nothing. A dot is something you have to be looking at; a row of colour is something you catch out of the corner of your eye, which is how a pinned panel is read at all. The badge in the bar takes the same colour, so a herd that wants something says so with the panel closed.
+Both **needs you** and **done** are written bold and in colour, along with the name beside them, and their whole row is washed in that colour: red for a question, green for work that finished. **working** and **ready** stay quiet, because a panel where every line is coloured is a panel where colour means nothing. A dot is something you have to be looking at; a row of colour is something you catch out of the corner of your eye, which is how a pinned panel is read at all. The badge in the bar takes the same colour, so a herd that wants something says so with the panel closed.
 
 Waiting beats finished beats busy, wherever a session has to be summed up in
 one colour.
@@ -62,11 +80,14 @@ one colour.
 - **Click a row** (or `Enter`, or `o`) to open that session. A session shows at
   most one window, because two windows on one session mirror each other, so
   this focuses the window it already has, wherever it is, and only opens a new
-  one when there is none. Without a window one is started, in foot.
+  one when there is none. Without a window one is started, in foot. A
+  machine's row opens the same way: focus the attached window, or attach with
+  `herdr --remote`.
 - **Click one of the agent lines** to land on that agent rather than on
   whatever the session was last showing: its pane is focused inside the server
-  first, then the window comes up. That also marks a finished agent as seen, so
-  clicking the line that says **done** is what clears it.
+  first, then the window comes up - over SSH first, for an agent on a machine.
+  That also marks a finished agent as seen, so clicking the line that says
+  **done** is what clears it.
 - **The skull** (or `k`) ends that server, and is the only way it is ended from
   here. It asks first, and the dialog opens on **Cancel** rather than on the
   confirming side: a dialog that destroys something on a reflexive Enter is
@@ -81,7 +102,9 @@ one colour.
   directory and the state herdr kept in it - which is what clears it out of the
   list for good. It takes the same slot as the skull, because a session is
   never both running and stopped. The shared session is herdr's own and is
-  never deleted from here.
+  never deleted from here. Neither button is on a machine's row: that server
+  is another host's process, and `herdr machine remove` is the door that
+  leads there.
 - **`r`** refreshes, and so does a middle click on the bar button.
 - **The pin** (or `p`) takes the panel out of the bar and leaves it on the desktop. See below.
 
@@ -91,13 +114,20 @@ why it stays in the list: clicking it starts that server back up, and the bin
 throws the session away for good. There is nothing to kill there, so the skull
 gives way to the bin.
 
+What survives the server is the layout - herdr keeps it in `session.json` - so
+a stopped row still names the workspaces it was holding and the directories
+they were opened in, the same names a running session shows. That is the
+difference between a session worth starting back up and a name left over from
+an afternoon, and it is not something the word "stopped" can tell you. A row
+that saved nothing worth naming says **nothing saved**.
+
 ## Remote machines
 
 Every enabled machine from `herdr machine list` is a row of its own, after
 the local sessions and under the machine's label - the same order and the
 same names herdr's own sidebar gives them. A machine profile targets one
 remote session, and the row shows that session's agents exactly as a local
-row does: same states, same titles, same click to land on one.
+row does: same states, same names, same click to land on one.
 
 - The row is asked for over SSH, with the same commands the widget runs
   locally, on a shared multiplexed connection, so a warm poll costs
@@ -112,21 +142,14 @@ row does: same states, same titles, same click to land on one.
 - Clicking an agent line focuses that agent's pane on the remote server
   first, over SSH, then brings the window up - the same two steps a local
   agent line takes.
-- There is no skull and no bin on a machine's row. The server is another
-  host's process; `herdr machine remove` is the door that leads there.
 
 Machines are listed only when `ssh` is installed and the profile is enabled
-in herdr itself. Nothing about them is configured here.
+in herdr itself. Nothing about them is configured here; where herdr lives on
+a machine is resolved once over SSH and remembered.
 
-What survives the server is the layout - herdr keeps it in `session.json` - so
-a stopped row still names the workspaces it was holding and the directories
-they were opened in, the same names a running session shows. That is the
-difference between a session worth starting back up and a name left over from
-an afternoon, and it is not something the word "stopped" can tell you. A row
-that saved nothing worth naming says **nothing saved**.
-
-The list refreshes every three seconds while the panel is open and every twenty
-seconds when it is closed.
+The list refreshes every three seconds while the panel is open, every five
+while something is live and the panel is closed, and every twenty seconds
+otherwise.
 
 ## Pinning it
 
@@ -147,7 +170,9 @@ Position, size and screen are kept in this widget's own entry in `~/.config/omar
 
 ## Screenshots
 
-It follows the theme, so it reads the same on a light one:
+It follows the theme, so it reads the same on a light one. The bundled
+screenshots are of the original card; this fork changes the header, the row
+labels and the agent lines, not the shape of the thing:
 
 ![The same panel on a light theme, with every status colour still legible](assets/screenshot-light.png)
 
@@ -161,23 +186,39 @@ bin/herdr-sessions demo off
 ```
 
 Every write is a no-op while it is on, so a click during a shoot cannot kill a
-real server.
+real server. The demo herd includes a running machine and an unreachable one,
+so both rows can be shown without owning a second computer.
 
 ## Installing it
 
 ```bash
-omarchy plugin add https://github.com/jankeesvw/omarchy-herdr
+omarchy plugin add https://github.com/katabex/herdr-monitor
 omarchy plugin enable jankeesvw.herdr
 omarchy bar move jankeesvw.herdr --section right
 ```
 
 Needs `herdr`, `jq` and `hyprctl` on `$PATH`, and `ssh` for the remote
-machines. The last one is what pairs a session with the window showing it;
-without Hyprland the list still works, but
-every session looks like it has no window and a click opens a new one. `ss`
-(from iproute2) is what the skull button uses to find the process behind a
-session's socket, and a window is opened in `foot`, falling back to
-`xdg-terminal-exec`.
+machines. `hyprctl` is what pairs a session with the window showing it;
+without Hyprland the list still works, but every session looks like it has no
+window and a click opens a new one. `ss` (from iproute2) is what the skull
+button uses to find the process behind a session's socket, and a window is
+opened in `foot`, falling back to `xdg-terminal-exec`.
+
+Remote machines need nothing beyond a profile herdr itself saved
+(`herdr machine add <target>`); the widget reads that list and never edits it.
+
+## Updating it
+
+```bash
+omarchy plugin update jankeesvw.herdr --yes
+```
+
+Data-script changes land on the next poll. QML changes want the shell
+restarted to be sure they are live:
+
+```bash
+omarchy-restart-shell
+```
 
 ## Removing it
 
@@ -186,12 +227,13 @@ omarchy plugin disable jankeesvw.herdr
 omarchy plugin remove jankeesvw.herdr
 ```
 
-The widget keeps no cache of your work: every value on screen is read from
-herdr at the moment it is drawn, and nothing about your projects, agents or
-titles is ever written to disk.
-
-The one file it can create is the demo flag, and only if you turned demo mode
-on. It is empty and holds nothing about you, but it outlives the plugin:
+Local sessions are drawn from herdr at the moment they are listed; nothing
+about them is kept. The remote machines leave a small cache behind, because
+a machine that goes quiet is worth showing dimmed rather than dropping:
+`~/.cache/omarchy-herdr/` holds each machine's last answer (workspace names,
+agent names and titles, as last drawn), the shared SSH control sockets, the
+resolved path of herdr on each machine, and the demo flag if you turned demo
+mode on. Clear it with:
 
 ```bash
 rm -rf ~/.cache/omarchy-herdr
