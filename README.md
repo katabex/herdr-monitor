@@ -89,6 +89,33 @@ why it stays in the list: clicking it starts that server back up, and the bin
 throws the session away for good. There is nothing to kill there, so the skull
 gives way to the bin.
 
+## Remote machines
+
+Every enabled machine from `herdr machine list` is a row of its own, after
+the local sessions and under the machine's label - the same order and the
+same names herdr's own sidebar gives them. A machine profile targets one
+remote session, and the row shows that session's agents exactly as a local
+row does: same states, same titles, same click to land on one.
+
+- The row is asked for over SSH, with the same commands the widget runs
+  locally, on a shared multiplexed connection, so a warm poll costs
+  milliseconds. Each call is bounded, so a machine that went away cannot hold
+  the list hostage.
+- A machine that does not answer keeps its row from the last answer, dimmed
+  and marked **unreachable** - the way herdr's own sidebar dims a lost
+  connection rather than dropping it. The next answer restores it.
+- Clicking a machine row focuses the window already attached to it, or opens
+  `herdr --remote <target>` in a terminal, which is the command herdr's own
+  docs give for a machine that needs attention.
+- Clicking an agent line focuses that agent's pane on the remote server
+  first, over SSH, then brings the window up - the same two steps a local
+  agent line takes.
+- There is no skull and no bin on a machine's row. The server is another
+  host's process; `herdr machine remove` is the door that leads there.
+
+Machines are listed only when `ssh` is installed and the profile is enabled
+in herdr itself. Nothing about them is configured here.
+
 What survives the server is the layout - herdr keeps it in `session.json` - so
 a stopped row still names the workspaces it was holding and the directories
 they were opened in, the same names a running session shows. That is the
@@ -142,8 +169,9 @@ omarchy plugin enable jankeesvw.herdr
 omarchy bar move jankeesvw.herdr --section right
 ```
 
-Needs `herdr`, `jq` and `hyprctl` on `$PATH`. The last one is what pairs a
-session with the window showing it; without Hyprland the list still works, but
+Needs `herdr`, `jq` and `hyprctl` on `$PATH`, and `ssh` for the remote
+machines. The last one is what pairs a session with the window showing it;
+without Hyprland the list still works, but
 every session looks like it has no window and a click opens a new one. `ss`
 (from iproute2) is what the skull button uses to find the process behind a
 session's socket, and a window is opened in `foot`, falling back to

@@ -196,8 +196,12 @@ Panel {
 
   // Names come back from herdr and go straight back out as an argument. The
   // script checks them too; this is the near end of the same fence.
+  //
+  // A saved machine's row is named "<machine id>:<session>" - herdr's opaque
+  // profile id, a colon, the remote session the profile targets. No session
+  // name may contain a colon, so the two can never collide.
   function validName(name) {
-    return /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(String(name))
+    return /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}(:[A-Za-z0-9][A-Za-z0-9._-]{0,63})?$/.test(String(name))
   }
 
   // Pane ids are herdr's own opaque handles - "w1:p2" - and travel back out
@@ -264,9 +268,11 @@ Panel {
   // the state herdr kept in it - which is what clears it out of the list for
   // good. A running server is killed rather than deleted; the two never apply
   // to the same row. The shared session is herdr's own and is not deleted from
-  // here at all.
+  // here at all, and a machine's row is not deleted either: what would be
+  // thrown away lives on another host, and `herdr machine remove` is the
+  // door that leads there.
   function removeSession(session) {
-    if (!session || session.isDefault || session.running) return
+    if (!session || session.isDefault || session.remote || session.running) return
     run("delete", session.name)
   }
 
@@ -277,8 +283,11 @@ Panel {
   // so there is no reason to keep both.
   //
   // The shared session is killed like any other. It wedges like any other.
+  // A machine's server is not killed from here: it is another host's
+  // process, held in another host's sessions, and the panel that reached
+  // over SSH to end it would be a very small button for a very large leap.
   function killSession(session) {
-    if (!session || !session.running || !validName(session.name)) return
+    if (!session || session.remote || !session.running || !validName(session.name)) return
     run("kill", session.name)
   }
 
@@ -292,7 +301,7 @@ Panel {
   // ConfirmDialog's own default: a dialog that destroys something on a
   // reflexive Enter is worse than no dialog, because it trains the reflex.
   function askKill(session) {
-    if (!session || !session.running || !validName(session.name)) return
+    if (!session || session.remote || !session.running || !validName(session.name)) return
     killTarget = session
     confirmOpen = true
     if (activeCard) activeCard.beginConfirm()
@@ -431,9 +440,11 @@ Panel {
 
   // The destructive button is not on every row: a stopped shared session has
   // nothing to kill and nothing that may be deleted, so its slot is empty and
-  // the cursor must step over it rather than park on a dead control.
+  // the cursor must step over it rather than park on a dead control. A
+  // machine's row is open-only, so its slot is empty too.
   function lastColumnFor(session) {
     if (!session) return root.columnRow
+    if (session.remote) return root.columnOpen
     if (session.running) return root.columnDestroy
     return session.isDefault ? root.columnOpen : root.columnDestroy
   }
@@ -534,9 +545,18 @@ Panel {
 
   // "default" is herdr's own name for the shared session, and it reads as a
   // setting rather than a place. A numbered one is a Hyprland workspace,
-  // which is worth saying out loud.
+  // which is worth saying out loud. A saved machine is named for the machine
+  // - that is how you think of it, the way herdr's own sidebar does - and
+  // its session is only worth saying when it is not the default one.
   function sessionLabel(session) {
     if (!session) return ""
+    if (session.remote) {
+      var part = String(session.name || "")
+      var colon = part.indexOf(":")
+      var sessionPart = colon >= 0 ? part.slice(colon + 1) : ""
+      return sessionPart === "" || sessionPart === "default"
+        ? session.machine : session.machine + " · " + sessionPart
+    }
     if (session.isDefault) return "Shared session"
     if (/^[0-9]+$/.test(session.name)) return "Workspace " + session.name
     return session.name
@@ -564,7 +584,7 @@ Panel {
   // what something is doing, and a stopped server is doing nothing.
   function countLabel(session) {
     if (!session) return ""
-    if (!session.running) return "stopped"
+    if (!session.running) return session.unreachable ? "" : "stopped"
     var n = session.agents || 0
     if (n === 0) return "no agents"
     return n === 1 ? "1 agent" : n + " agents"
@@ -576,7 +596,11 @@ Panel {
   // to one thing: a question on screen outranks work that has already ended,
   // and both outrank an agent that is simply busy.
   function noteLabel(session) {
-    if (!session || !session.running) return ""
+    if (!session || !session.running) {
+      // A machine that stopped answering says so where the state word goes:
+      // its agents are the last thing it said, dimmed along with the row.
+      return session && session.unreachable ? "unreachable" : ""
+    }
     if ((session.blocked || 0) > 0) return session.blocked + " needs you"
     if ((session.done || 0) > 0) return session.done + " done"
     if ((session.working || 0) > 0) return session.working + " working"
@@ -635,6 +659,9 @@ Panel {
 
   function noteColor(session) {
     if (!session) return root.foreground
+    // Amber rather than urgent red: an unreachable machine is a fault to
+    // notice, not an agent waiting on you, and red already means that.
+    if (session.unreachable) return root.working
     if ((session.blocked || 0) > 0) return root.urgent
     if ((session.done || 0) > 0) return root.finished
     return root.accent

@@ -603,7 +603,9 @@ PanelKeyCatcher {
                 id: killButton
                 hasCursor: panel.cursorOnSession(row.index)
                   && panel.column === panel.columnDestroy
-                visible: row.modelData.running
+                // A machine's server is another host's process; the skull
+                // stops at the water's edge.
+                visible: row.modelData.running && !row.modelData.remote
                 iconText: panel.iconKill
                 tooltipText: "Kill this server"
                 foreground: Qt.darker(panel.foreground, 1.4)
@@ -616,7 +618,7 @@ PanelKeyCatcher {
               PanelActionButton {
                 hasCursor: panel.cursorOnSession(row.index)
                   && panel.column === panel.columnDestroy
-                visible: !row.modelData.running && !row.modelData.isDefault
+                visible: !row.modelData.running && !row.modelData.isDefault && !row.modelData.remote
                 iconText: panel.iconTrash
                 tooltipText: "Delete this session"
                 foreground: Qt.darker(panel.foreground, 1.4)
