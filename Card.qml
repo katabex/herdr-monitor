@@ -582,16 +582,19 @@ PanelKeyCatcher {
 
           }
 
-          // The buttons keep their slot on every row, so the names stay
-          // in one column. Faint until the row is under the cursor: a
+          // The destructive slot keeps its place on every row, so the names
+          // stay in one column. Faint until the row is under the cursor: a
           // control where you are looking, and almost nothing where you
-          // are not.
+          // are not. The open button that used to share this column is
+          // gone - the row itself and every agent line already open the
+          // session, and a second way to do what anything else in the row
+          // did was one button too many.
           Row {
             id: actions
             anchors.top: parent.top
             spacing: Style.space(2)
             opacity: row.active ? 1 : 0.25
-            // The buttons stay faint until the row is under the cursor,
+            // The button stays faint until the row is under the cursor,
             // and `active` already covers that for both mouse and keys.
 
             Behavior on opacity { NumberAnimation { duration: 80 } }
@@ -599,19 +602,7 @@ PanelKeyCatcher {
             // hasCursor makes the button render its hover state for the
             // keyboard too, so the cursor looks the same whether it got
             // there by pointing or by pressing Right.
-            PanelActionButton {
-              hasCursor: panel.cursorOnSession(row.index)
-                && panel.column === panel.columnOpen
-              iconText: panel.iconOpen
-              tooltipText: row.modelData.windowAddress !== ""
-                ? "Focus this session" : "Open this session"
-              foreground: panel.foreground
-              hoverColor: panel.accent
-              fontFamily: panel.fontFamily
-              fontSize: Style.font.iconSmall
-              onClicked: panel.openSession(row.modelData)
-            }
-
+            //
             // One destructive slot, holding whichever of the two applies
             // to this row: a running server is killed, a stopped session is
             // deleted, and nothing is ever both. Sharing the slot rather

@@ -79,7 +79,6 @@ Panel {
 
   readonly property string iconServer: "\uF233"
   readonly property string iconDot: "\uF111"
-  readonly property string iconOpen: "\uF2D2"
   readonly property string iconTrash: "\uF1F8"
   // nf-md-skull, U+F068C. Written as its surrogate pair because a `\u`
   // escape takes exactly four hex digits, and this codepoint is past the
@@ -185,14 +184,15 @@ Panel {
   // seconds after you moved it.
   property bool cursorPlaced: false
 
-  // Where the cursor is across the row: 0 is the row itself, 1 the open
-  // button, 2 the destructive one. Right and Tab walk out to the buttons,
-  // Left walks back. Kept as a number rather than a per-row object so moving
-  // up and down holds its place in the row: walking a column of kill buttons
-  // is a thing you do on purpose.
+  // Where the cursor is across the row: 0 is the row itself, 1 the
+  // destructive button. Right and Tab walk out to the button, Left walks
+  // back. There used to be an open button out here too; it went away when
+  // the row itself and every agent line became the way in, and the cursor
+  // walk shrank with it. Kept as a number rather than a per-row object so
+  // moving up and down holds its place in the row: walking a column of kill
+  // buttons is a thing you do on purpose.
   readonly property int columnRow: 0
-  readonly property int columnOpen: 1
-  readonly property int columnDestroy: 2
+  readonly property int columnDestroy: 1
   property int column: 0
   property int cursor: -1
 
@@ -465,14 +465,14 @@ Panel {
   }
 
   // The destructive button is not on every row: a stopped shared session has
-  // nothing to kill and nothing that may be deleted, so its slot is empty and
-  // the cursor must step over it rather than park on a dead control. A
-  // machine's row is open-only, so its slot is empty too.
+  // nothing to kill and nothing that may be deleted, and a machine's row has
+  // no buttons at all - so for those rows there is nothing to walk out to
+  // and the cursor stays on the row.
   function lastColumnFor(session) {
     if (!session) return root.columnRow
-    if (session.remote) return root.columnOpen
+    if (session.remote) return root.columnRow
     if (session.running) return root.columnDestroy
-    return session.isDefault ? root.columnOpen : root.columnDestroy
+    return session.isDefault ? root.columnRow : root.columnDestroy
   }
 
   function clampColumn() {
@@ -514,12 +514,12 @@ Panel {
     if (activeCard) activeCard.showRow(sessionIndex)
   }
 
-  // Enter goes as deep as the cursor is: onto the agent when it is on one, and
-  // onto the session when the row is a session with nothing in it.
+  // Enter goes as deep as the cursor is: onto the agent when it is on one,
+  // onto the destroy button when it is out on one, and onto the session when
+  // the row is a session with nothing in it.
   function activateCursor() {
     var session = sessionAt(cursor)
     if (!session) return
-    if (column === root.columnOpen) { openSession(session); return }
     if (column === root.columnDestroy) {
       if (session.running) askKill(session)
       else removeSession(session)
