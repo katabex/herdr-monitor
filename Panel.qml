@@ -59,16 +59,31 @@ Panel {
         var list = s.agentList || []
         for (var j = 0; j < list.length; j++)
           agents.push({ workspace: list[j].workspace || "",
-                        name: root.agentName(list[j]) })
+                        name: root.agentName(list[j]),
+                        pane: list[j].pane || "",
+                        paneValid: root.validPane(list[j].pane) })
         rows.push({ name: s.name, remote: s.remote, machine: s.machine,
                      label: root.sessionLabel(s), agents: agents })
       }
       return JSON.stringify({
-        code: 4,
+        code: 5,
         card: root.activeCard && root.activeCard.cardMarker
           ? root.activeCard.cardMarker : "none",
         rows: rows
       })
+    }
+
+    // Runs the exact path an agent-line click takes - focusAgent, run(),
+    // the Process, the script - and reports what it was handed, so a bad
+    // pane can be told from a bad click without anyone having to click.
+    function probeFocus(si: string, ai: string): string {
+      var s = root.sessions[Number(si)]
+      var a = s ? (s.agentList || [])[Number(ai)] : null
+      if (!s || !a) return "no such agent"
+      var pane = a.pane
+      root.focusAgent(s, a)
+      return JSON.stringify({ pane: pane, paneValid: root.validPane(pane),
+                              nameValid: root.validName(s.name) })
     }
   }
 
