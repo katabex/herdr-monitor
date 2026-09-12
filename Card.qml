@@ -118,7 +118,7 @@ PanelKeyCatcher {
     Item {
       id: headerRow
       width: parent.width
-      height: Math.max(title.implicitHeight, pinButton.implicitHeight)
+      height: Math.max(title.implicitHeight, logo.implicitHeight, pinButton.implicitHeight)
 
       // Six dots, drawn rather than looked up in a font, because this one has
       // to be exactly right at three pixels and a glyph at that size is
@@ -153,10 +153,27 @@ PanelKeyCatcher {
         }
       }
 
+      // The same server glyph the bar button wears, at the head of the
+      // card's own name: the panel answers to the mark that summoned it,
+      // and the header says what it is before it says how much of it there
+      // is. Sized off the icon font rather than the body so it stays a
+      // glyph and never a smudged letter.
+      Text {
+        id: logo
+        anchors.left: grip.visible ? grip.right : parent.left
+        anchors.verticalCenter: parent.verticalCenter
+        text: panel.iconServer
+        textFormat: Text.PlainText
+        font.family: panel.fontFamily
+        font.pixelSize: Style.font.iconSmall
+        renderType: Text.NativeRendering
+        color: panel.foreground
+      }
+
       PanelSectionHeader {
         id: title
-        anchors.left: grip.visible ? grip.right : parent.left
-        anchors.leftMargin: grip.visible ? Style.space(8) : 0
+        anchors.left: logo.right
+        anchors.leftMargin: Style.space(6)
         anchors.right: pinButton.left
         anchors.rightMargin: Style.space(6)
         anchors.verticalCenter: parent.verticalCenter

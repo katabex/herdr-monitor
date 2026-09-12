@@ -551,11 +551,16 @@ Panel {
   function sessionLabel(session) {
     if (!session) return ""
     if (session.remote) {
+      var machine = String(session.machine || "")
       var part = String(session.name || "")
       var colon = part.indexOf(":")
       var sessionPart = colon >= 0 ? part.slice(colon + 1) : ""
+      // The label is the machine's own name, and only herdr's catalog can
+      // say it - if an answer ever arrives without one, the session half
+      // of the key is better than the key itself.
+      if (machine === "") machine = sessionPart || "remote"
       return sessionPart === "" || sessionPart === "default"
-        ? session.machine : session.machine + " · " + sessionPart
+        ? machine : machine + " · " + sessionPart
     }
     if (session.isDefault) return "Shared session"
     if (/^[0-9]+$/.test(session.name)) return "Workspace " + session.name
