@@ -920,9 +920,16 @@ Panel {
             id: count
             anchors.centerIn: parent
             // Centring the text item leaves the digit riding high: a line box
-            // reserves descender room a digit never uses. Nudge it back down
-            // onto the middle of the disc.
-            anchors.verticalCenterOffset: Math.round(font.pixelSize * 0.1)
+            // reserves descender room a digit never uses. A nudge of half a
+            // pixel puts the ink's middle on the disc's middle - measured on
+            // the rendered bar, not guessed: a full rounded pixel
+            // overcorrects and the digit sits visibly low in a 12px disc.
+            // Unrounded on purpose: anchors take real offsets, and the
+            // fraction is the whole point of it. Horizontal needs nothing:
+            // the residual is the glyph's own ink-to-advance bearing, and at
+            // 1x rendering it snaps to the same half-pixel whichever way you
+            // push it.
+            anchors.verticalCenterOffset: font.pixelSize * 0.05
             text: root.runningCount
             textFormat: Text.PlainText
             font.family: root.fontFamily
