@@ -588,7 +588,7 @@ Panel {
       return sessionPart === "" || sessionPart === "default"
         ? machine : machine + " · " + sessionPart
     }
-    if (session.isDefault) return "Shared session"
+    if (session.isDefault) return "Local"
     if (/^[0-9]+$/.test(session.name)) return "Workspace " + session.name
     return session.name
   }
