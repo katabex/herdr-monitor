@@ -200,6 +200,14 @@ rm -rf ~/.cache/omarchy-herdr
 Your herdr sessions are untouched by removing the plugin - they live in
 `~/.config/herdr/` and are herdr's, not this widget's.
 
+## Credits
+
+Forked from [jankeesvw/omarchy-herdr](https://github.com/jankeesvw/omarchy-herdr)
+by [Jankees](https://github.com/jankeesvw) — the local-sessions widget this is
+built on, including its data script, card and panel. The remote-machines layer
+on top of it (SSH fan-out, window pairing for `herdr --remote`, machine rows,
+the header glyph and agent-row layout) is added in this fork.
+
 ## License
 
 MIT
