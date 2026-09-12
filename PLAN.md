@@ -63,9 +63,19 @@ To try this fork:
 
 ```bash
 omarchy plugin disable jankeesvw.herdr
-omarchy plugin add /home/ptr/Repos/ktbx/herdr-monitor
-omarchy plugin enable jankeesvw.herdr
+omarchy plugin remove jankeesvw.herdr
+omarchy plugin add https://github.com/katabex/herdr-monitor --enable --yes
+omarchy plugin enable jankeesvw.herdr --section right
 ```
 
 (or swap the directory manually and restart the shell). The data script can
 be exercised on its own: `bin/herdr-sessions list | jq .`
+
+Push target: `origin` = `git@github-ka:katabex/herdr-monitor.git` (per-host
+SSH alias in `~/.ssh/config`); `upstream` = `jankeesvw/omarchy-herdr`. The
+installed copy's git origin still points at this directory, so
+`omarchy plugin update jankeesvw.herdr` picks up local commits without the
+network.
+
+QML changes need the shell restarted to land when the plugin-reload path is
+wedged: `omarchy plugin update jankeesvw.herdr --yes && omarchy-restart-shell`.
