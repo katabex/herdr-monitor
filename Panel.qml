@@ -100,7 +100,7 @@ Panel {
   readonly property color finished: "#5FA46B"
   // Working is amber for the same reason, and because it used to borrow the
   // accent: on a theme whose accent is red or green, "busy" was indistinguish-
-  // able from "needs you" or "finished" - the two the badge exists to separate.
+  // able from "needs you" or "finished" - the two the bar glyph exists to separate.
   readonly property color working: "#D6A84B"
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
 
@@ -111,7 +111,7 @@ Panel {
   property int doneCount: 0
   property int workingCount: 0
   // The three states that turn into each other without you touching anything.
-  // They decide the badge's colour, and they decide how often it is worth
+  // They decide the bar glyph's colour, and they decide how often it is worth
   // asking - an idle herd cannot change until you change it.
   readonly property bool badgeActive:
     blockedCount > 0 || doneCount > 0 || workingCount > 0
@@ -205,9 +205,9 @@ Panel {
   readonly property int cardMinWidth: Style.space(210)
   readonly property int cardMinHeight: Style.space(120)
 
-  // The glyph, plus the few pixels the badge overhangs its corner by. Without
-  // them the disc spills onto whatever widget sits next in the bar.
-  readonly property int barContentWidth: Style.bar.iconFont + Style.space(4)
+  // The glyph, and nothing more now the badge is gone: the button's content
+  // is the icon's own width.
+  readonly property int barContentWidth: Style.bar.iconFont
 
   // Panel is a bare Item with no size of its own, so the bar would hand this
   // widget zero width. Set it from the computed content width, never from a
@@ -718,10 +718,16 @@ Panel {
     return Qt.darker(root.foreground, 1.7)
   }
 
-  function badgeColor() {
+  // The bar glyph is the status light. It wears the colour of whatever the
+  // herd most wants - a question red, finished work green, busy amber - and
+  // gives way to the bar's own foreground when there is nothing to say.
+  // Waiting beats finished beats busy, the same order everywhere else a
+  // state has to become one colour.
+  function iconColor() {
     if (blockedCount > 0) return root.urgent
     if (doneCount > 0) return root.finished
-    return root.working
+    if (workingCount > 0) return root.working
+    return root.barForeground
   }
 
   function titleText() {
@@ -847,11 +853,12 @@ Panel {
   }
 
   // Polled rather than subscribed: herdr has an event socket, but one per
-  // server, and the count in the bar is the sort of thing that can be a few
-  // seconds old. Faster while the panel is open, because the agent states in
-  // it are what you came to read, and faster while anything is live, because
-  // that is the only time the badge colour can go stale on its own. Idle costs
-  // one poll every twenty seconds and catches the moment you start something.
+  // server, and the state of the bar glyph is the sort of thing that can be a
+  // few seconds old. Faster while the panel is open, because the agent states
+  // in it are what you came to read, and faster while anything is live,
+  // because that is the only time the glyph colour can go stale on its own.
+  // Idle costs one poll every twenty seconds and catches the moment you
+  // start something.
   Timer {
     interval: root.opened ? 3000 : (root.badgeActive ? 5000 : 20000)
     running: true
@@ -885,59 +892,18 @@ Panel {
           // icon does. The theme foreground is only right where the panel
           // paints its own background.
           //
+          // That is the resting colour. The glyph is also the status light:
+          // when anything in the herd wants you, finished, or is busy, it
+          // takes that state's colour instead. It used to carry a count on a
+          // badge over its corner - dropped in favour of the light, because
+          // the panel one click away is the census and the bar only has to
+          // say that there is something worth looking at.
+          //
           // Nothing here reacts to the panel being open: the bar draws that
           // itself, as an accent line on the module's inner edge, for every
           // widget that has a panel. Tinting the glyph as well says the same
           // thing twice, in the one colour that means something else.
-          color: root.barForeground
-        }
-
-        // The server count rides the glyph's top-right corner, the way an
-        // unread count rides an app icon, and is sized off the icon font so a
-        // theme that resizes the bar takes it along. The ratios are what the
-        // default 13px icon can carry: a 12px disc around a 9px digit. Three
-        // quarters of the glyph leaves the digit on 6px, which is a coloured
-        // speck rather than a count - unreadable at two digits - and the badge
-        // exists to say how many as much as it says which colour.
-        Rectangle {
-          id: badge
-          anchors.horizontalCenter: serverIcon.horizontalCenter
-          anchors.horizontalCenterOffset: Math.round(Style.bar.iconFont * 0.42)
-          anchors.verticalCenter: serverIcon.verticalCenter
-          anchors.verticalCenterOffset: -Math.round(Style.bar.iconFont * 0.40)
-          visible: root.reachable && root.runningCount > 0 && root.badgeActive
-          height: Math.round(Style.bar.iconFont * 0.95)
-          width: Math.max(height, count.implicitWidth + Math.round(height * 0.45))
-          radius: height / 2
-          color: root.badgeColor()
-          // A rim in the bar's own background separates the badge from the
-          // glyph it sits on, so the corner it covers still reads as a corner
-          // and not as two shapes fused together.
-          border.width: Math.round(Style.bar.iconFont * 0.06)
-          border.color: Color.bar.background
-
-          Text {
-            id: count
-            anchors.centerIn: parent
-            // Centring the text item leaves the digit riding high: a line box
-            // reserves descender room a digit never uses. A nudge of half a
-            // pixel puts the ink's middle on the disc's middle - measured on
-            // the rendered bar, not guessed: a full rounded pixel
-            // overcorrects and the digit sits visibly low in a 12px disc.
-            // Unrounded on purpose: anchors take real offsets, and the
-            // fraction is the whole point of it. Horizontal needs nothing:
-            // the residual is the glyph's own ink-to-advance bearing, and at
-            // 1x rendering it snaps to the same half-pixel whichever way you
-            // push it.
-            anchors.verticalCenterOffset: font.pixelSize * 0.05
-            text: root.runningCount
-            textFormat: Text.PlainText
-            font.family: root.fontFamily
-            font.pixelSize: Math.round((badge.height - 2 * badge.border.width) * 0.88)
-            font.bold: true
-            renderType: Text.NativeRendering
-            color: Color.background
-          }
+          color: root.iconColor()
         }
       }
     }

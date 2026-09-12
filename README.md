@@ -23,13 +23,14 @@ The card's header is the server glyph the bar button wears, followed by the
 tally - `Herdr (2 servers, 5 agents)` - counting local sessions and machines
 together.
 
-The bar carries the number of running servers, on a badge sitting in the top
-right corner of the icon, its digit centred in the disc. It turns red when an
-agent is blocked and waiting on an answer, green when work finished while you
-were looking elsewhere, and amber while something is still running. When every
-agent is idle there is nothing to say, so the badge goes away and the icon
-stands on its own. Blocked agents on a machine count the same as local ones:
-the badge is about the herd, not about where it grazes.
+The bar carries the widget's glyph, and the glyph is the status light. It
+turns red when an agent is blocked and waiting on an answer, green when work
+finished while you were looking elsewhere, and amber while something is still
+running. When every agent is idle there is nothing to say, so the glyph goes
+back to the bar's own colour and stands quietly. Agents on a machine count
+the same as local ones: the light is about the herd, not about where it
+grazes. The numbers themselves live in the panel's header - and in the bar
+button's tooltip, for a count at a glance without opening anything.
 
 Each row in the panel is one session or one machine:
 
@@ -70,7 +71,7 @@ herdr's own attention queue, the order its agent panel takes when
 `agent_panel_sort = "priority"`. `idle` is written as **ready**, because it is the ordinary resting
 state and "idle" reads like a fault.
 
-Both **needs you** and **done** are written bold and in colour, along with the name beside them, and their whole row is washed in that colour: red for a question, green for work that finished. **working** and **ready** stay quiet, because a panel where every line is coloured is a panel where colour means nothing. A dot is something you have to be looking at; a row of colour is something you catch out of the corner of your eye, which is how a pinned panel is read at all. The badge in the bar takes the same colour, so a herd that wants something says so with the panel closed.
+Both **needs you** and **done** are written bold and in colour, along with the name beside them, and their whole row is washed in that colour: red for a question, green for work that finished. **working** and **ready** stay quiet, because a panel where every line is coloured is a panel where colour means nothing. A dot is something you have to be looking at; a row of colour is something you catch out of the corner of your eye, which is how a pinned panel is read at all. The glyph in the bar takes the same colour, so a herd that wants something says so with the panel closed.
 
 Waiting beats finished beats busy, wherever a session has to be summed up in
 one colour.
