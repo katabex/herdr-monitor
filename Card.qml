@@ -18,6 +18,10 @@ import qs.Ui
 PanelKeyCatcher {
   id: card
 
+  // Which build of this file the running shell actually has (see the dev
+  // IPC probe in Panel.qml).
+  readonly property string cardMarker: "logo-1"
+
   // The widget that owns the data, the colours and every action. Everything
   // in here reads through it rather than keeping a copy, so the two cards
   // never drift apart.

@@ -46,6 +46,27 @@ Panel {
   moduleName: "jankeesvw.herdr"
   ipcTarget: "jankeesvw.herdr"
 
+  // Debug probe on its own target so it cannot collide with the panel's
+  // own handler: reports which code is live and what it computes, so a
+  // stale render can be told from a stale idea without a screenshot.
+  IpcHandler {
+    target: "jankeesvw.herdr.dev"
+    function version(): string {
+      var rows = []
+      for (var i = 0; i < root.sessions.length; i++) {
+        var s = root.sessions[i]
+        rows.push({ name: s.name, remote: s.remote, machine: s.machine,
+                     label: root.sessionLabel(s) })
+      }
+      return JSON.stringify({
+        code: 3,
+        card: root.activeCard && root.activeCard.cardMarker
+          ? root.activeCard.cardMarker : "none",
+        rows: rows
+      })
+    }
+  }
+
   // The script sits next to this file, so the plugin runs from wherever it
   // was installed without putting anything on $PATH.
   readonly property string script:
