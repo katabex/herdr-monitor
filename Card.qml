@@ -289,7 +289,8 @@ PanelKeyCatcher {
 
           Column {
             id: agentColumn
-            width: parent.width - Style.space(21) - actions.width - rowContent.spacing
+            width: parent.width - Style.space(21)
+              - (actions.width > 0 ? actions.width + rowContent.spacing : 0)
             spacing: Style.space(2)
 
             Item {
@@ -565,13 +566,12 @@ PanelKeyCatcher {
 
           }
 
-          // The destructive slot keeps its place on every row, so the names
-          // stay in one column. Faint until the row is under the cursor: a
-          // control where you are looking, and almost nothing where you
-          // are not. The open button that used to share this column is
-          // gone - the row itself and every agent line already open the
-          // session, and a second way to do what anything else in the row
-          // did was one button too many.
+          // The bin, on the one kind of row that can have it: a local
+          // session that is already stopped and is not the shared one.
+          // Running sessions have nothing here - a server is ended from a
+          // terminal, not from a bar - and machines never do. Faint until
+          // the row is under the cursor: a control where you are looking,
+          // and almost nothing where you are not.
           Row {
             id: actions
             anchors.top: parent.top
@@ -586,15 +586,14 @@ PanelKeyCatcher {
             // keyboard too, so the cursor looks the same whether it got
             // there by pointing or by pressing Right.
             //
-            // The bin, on the one row that can have it: a local session
-            // that is already stopped and is not the shared one. Running
-            // sessions have nothing here anymore - a server is ended from a
-            // terminal, not from a bar - and machines never do. The slot is
-            // kept on every row rather than collapsing to nothing when it
-            // is empty, which keeps the names in one column and leaves no
-            // layout jump between rows.
+            // The space collapses to nothing on rows without the bin. The
+            // slot used to be kept on every row so the names stayed in one
+            // column when every row had buttons; with the open button and
+            // the skull gone, a reserved slot on every row was a blank
+            // strip down the right edge for the sake of one rare button,
+            // and the padding read as broken.
             Item {
-              width: trashButton.width
+              width: trashButton.visible ? trashButton.width : 0
               height: trashButton.height
 
               PanelActionButton {
